@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORION HORIZON | Space Rogue-lite RPG</title>
+    <style>
+        :root {
+            --bg-deep: #05070f;
+            --bg-panel: #0b1120;
+            --bg-light: #1e293b;
+            --border-neon: #1f2937;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --neon-green: #10b981;
+            --neon-blue: #0ea5e9;
+            --neon-orange: #f59e0b;
+            --neon-red: #ef4444;
+            --neon-purple: #a855f7;
+            --font-ui: 'Courier New', Courier, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            font-family: var(--font-ui);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background-image: 
+                radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 40px),
+                radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 30px),
+                radial-gradient(white, rgba(255,255,255,.1) 2px, transparent 40px);
+            background-size: 550px 550px, 350px 350px, 250px 250px;
+            background-position: 0 0, 40px 60px, 130px 270px;
+        }
+
+        header {
+            background-color: var(--bg-panel);
+            border-bottom: 2px solid var(--neon-blue);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 0 15px rgba(14, 165, 233, 0.2);
+            z-index: 10;
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            color: var(--neon-blue);
+            text-shadow: 0 0 5px var(--neon-blue);
+            letter-spacing: 2px;
+        }
+
+        header .controls button {
+            background: transparent;
+            border: 1px solid var(--text-muted);
+            color: var(--text-muted);
+            padding: 5px 10px;
+            cursor: pointer;
+            font-family: var(--font-ui);
+            font-size: 0.8rem;
+            margin-left: 10px;
+            transition: all 0.2s;
+        }
+
+        header .controls button:hover {
+            border-color: var(--neon-blue);
+            color: var(--neon-blue);
+            box-shadow: 0 0 5px var(--neon-blue);
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 300px 1fr 320px;
+            flex: 1;
+            overflow: hidden;
+            height: calc(100vh - 50px);
+        }
+
+        @media (max-width: 1024px) {
+            .main-container {
+                grid-template-columns: 260px 1fr;
+                grid-template-rows: auto 1fr;
+            }
+            .right-panel {
+                grid-column: 1 / -1;
+                height: 200px !important;
+            }
+        }
+
+        .panel {
+            background-color: rgba(11, 17, 32, 0.85);
+            border: 1px solid var(--border-neon);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            backdrop-filter: blur(4px);
+        }
+
+        .left-panel { border-right: 2px solid var(--border-neon); }
+        .center-panel { 
+            border-right: 2px solid var(--border-neon); 
+            background-color: rgba(7, 11, 22, 0.9);
+            display: flex;
+            flex-direction: column;
+        }
+        .right-panel { background-color: rgba(7, 11, 22, 0.85); }
+
+        .panel-header {
+            background-color: rgba(30, 41, 59, 0.5);
+            padding: 8px 12px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid var(--border-neon);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .status-group {
+            padding: 15px;
+            border-bottom: 1px solid rgba(31, 41, 55, 0.4);
+        }
+
+        .status-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .bar-container {
+            width: 100%;
+            height: 12px;
+            background-color: var(--bg-light);
+            border: 1px solid #334155;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            position: relative;
+        }
+
+        .bar-fill {
+            height: 100%;
+            width: 100%;
+            transition: width 0.4s ease;
+        }
+
+        .bar-hp { background-color: var(--neon-green); box-shadow: 0 0 8px var(--neon-green); }
+        .bar-shield { background-color: var(--neon-blue); box-shadow: 0 0 8px var(--neon-blue); }
+        .bar-fuel { background-color: var(--neon-orange); box-shadow: 0 0 8px var(--neon-orange); }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 15px;
+        }
+
+        .stat-box {
+            background: rgba(30, 41, 59, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 8px;
+            border-radius: 2px;
+            text-align: center;
+        }
+
+        .stat-val {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-top: 3px;
+        }
+
+        .cargo-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 15px;
+        }
+
+        .cargo-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            padding: 6px 0;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+        }
+
+        .log-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .log-msg {
+            font-size: 0.95rem;
+            line-height: 1.4;
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .msg-system { color: var(--text-muted); }
+        .msg-story { color: var(--text-main); }
+        .msg-combat-player { color: var(--neon-blue); }
+        .msg-combat-enemy { color: var(--neon-red); }
+        .msg-reward { color: var(--neon-green); }
+        .msg-warning { color: var(--neon-orange); }
+
+        .action-area {
+            background-color: rgba(15, 23, 42, 0.9);
+            border-top: 2px solid var(--border-neon);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-height: 160px;
+        }
+
+        .btn-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        button.action-btn {
+            background-color: var(--bg-light);
+            border: 1px solid #475569;
+            color: var(--text-main);
+            padding: 12px;
+            font-family: var(--font-ui);
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-align: left;
+            border-radius: 3px;
+            transition: all 0.2s;
+        }
+
+        button.action-btn:hover:not(:disabled) {
+            background-color: rgba(14, 165, 233, 0.15);
+            border-color: var(--neon-blue);
+            color: #fff;
+            box-shadow: 0 0 8px rgba(14, 165, 233, 0.3);
+        }
+
+        button.action-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            border-color: transparent;
+        }
+
+        button.action-btn.btn-danger:hover:not(:disabled) {
+            background-color: rgba(239, 68, 68, 0.15);
+            border-color: var(--neon-red);
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+        }
+
+        .map-grid {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .map-row {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.03);
+            position: relative;
+            padding-bottom: 10px;
+        }
+
+        .map-node {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background-color: #1e293b;
+            border: 2px solid #475569;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s;
+            z-index: 2;
+        }
+
+        .map-node:hover:not(:disabled) {
+            transform: scale(1.15);
+            box-shadow: 0 0 10px #fff;
+        }
+
+        .map-node.current {
+            border-color: var(--neon-blue);
+            background-color: rgba(14, 165, 233, 0.3);
+            box-shadow: 0 0 12px var(--neon-blue);
+            animation: pulse 2s infinite;
+        }
+
+        .map-node.visited {
+            border-color: var(--text-muted);
+            background-color: #0f172a;
+            opacity: 0.6;
+        }
+
+        .map-node:disabled {
+            opacity: 0.25;
+            cursor: not-allowed;
+        }
+
+        .map-node.boss-node {
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+            width: 55px;
+            height: 55px;
+        }
+
+        .map-node.boss-node.current {
+            box-shadow: 0 0 15px var(--neon-purple);
+        }
+
+Используйте код с осторожностью.
+.node-tooltip {
+position: absolute;
+bottom: -20px;
+font-size: 0.65rem;
+white-space: nowrap;
+background: rgba(0, 0, 0, 0.8);
+padding: 1px 6px;
+border-radius: 3px;
+color: var(--text-main);
+pointer-events: none;
+}
+@keyframes pulse {
+0% { box-shadow: 0 0 4px var(--neon-blue); }
+50% { box-shadow: 0 0 15px var(--neon-blue); }
+100% { box-shadow: 0 0 4px var(--neon-blue); }
+}
+.modal-overlay {
+position: fixed;
+top: 0;
+left: 0;
+width: 100vw;
+height: 100vh;
+background: rgba(3, 7, 18, 0.9);
+display: flex;
+align-items: center;
+justify-content: center;
+z-index: 100;
+opacity: 0;
+pointer-events: none;
+transition: opacity 0.3s ease;
+}
+.modal-overlay.active {
+opacity: 1;
+pointer-events: auto;
+}
+.modal-content {
+background: var(--bg-panel);
+border: 2px solid var(--neon-blue);
+box-shadow: 0 0 30px rgba(14, 165, 233, 0.3);
+width: 90%;
+max-width: 550px;
+padding: 30px;
+border-radius: 4px;
+text-align: center;
+animation: modalSlide 0.3s ease;
+}
+@keyframes modalSlide {
+from { transform: translateY(20px); }
+to { transform: translateY(0); }
+}
+.modal-title {
+font-size: 2rem;
+margin-bottom: 15px;
+letter-spacing: 2px;
+}
+.modal-title.lose { color: var(--neon-red); text-shadow: 0 0 10px var(--neon-red); }
+.modal-title.win { color: var(--neon-green); text-shadow: 0 0 10px var(--neon-green); }
+.modal-stats {
+margin: 20px 0;
+text-align: left;
+background: rgba(255, 255, 255, 0.03);
+padding: 15px;
+border-radius: 3px;
+display: flex;
+flex-direction: column;
+gap: 8px;
+}
+.modal-btn {
+background: var(--neon-blue);
+color: #fff;
+border: none;
+padding: 12px 30px;
+font-family: var(--font-ui);
+font-size: 1rem;
+cursor: pointer;
+font-weight: bold;
+border-radius: 2px;
+box-shadow: 0 0 10px rgba(14, 165, 233, 0.4);
+}
+.modal-btn:hover {
+background: #0284c7;
+box-shadow: 0 0 15px rgba(14, 165, 233, 0.7);
+}
+.market-ui, .hangar-ui {
+display: flex;
+flex-direction: column;
+gap: 8px;
+width: 100%;
+}
+.trade-row, .upg-row {
+display: grid;
+grid-template-columns: 100px 50px 1fr 1fr;
+gap: 8px;
+align-items: center;
+background: rgba(255, 255, 255, 0.02);
+padding: 6px;
+border-radius: 2px;
+font-size: 0.85rem;
+}
+.upg-row {
+grid-template-columns: 130px 60px 1fr;
+}
+.trade-btn {
+padding: 4px 8px;
+font-size: 0.75rem;
+background: var(--bg-light);
+border: 1px solid #475569;
+color: #fff;
+cursor: pointer;
+font-family: var(--font-ui);
+text-align: center;
+}
+.trade-btn:hover:not(:disabled) {
+border-color: var(--neon-blue);
+background: rgba(14, 165, 233, 0.2);
+}
+.trade-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.combat-stats-banner {
+background: rgba(239, 68, 68, 0.1);
+border: 1px solid rgba(239, 68, 68, 0.3);
+padding: 8px;
+border-radius: 3px;
+margin-bottom: 5px;
+font-size: 0.85rem;
+display: flex;
+justify-content: space-between;
+}
+
+
+ORION HORIZON
+
+Сбросить прогресс
+
+Состояние корабля
+
+Корпус HP100/100
+Энергощиты40/40
+Топливо (Гиперпрыжки)12/20
+
+Характеристики и Ресурсы
+
+Кредиты150
+Ракеты3
+Лазер12
+Уклонение15%
+Трюм (0/40)
+
+Сектор 1
+Система Alpha
+
+
+
+Навигационная карта сектора 1/5
+
+
+ИГРА ОКОНЧЕНА
+Ваш корабль был уничтожен в глубоком космосе...
+
+Пройдено секторов: 0
+Посещено систем: 0
+Заработано кредитов: 0
+Уничтожено врагов: 0
+
+Начать новую симуляцию
+
+let gameState = {
+sector: 1, maxSectors: 5,
+hp: 100, maxHp: 100,
+shield: 40, maxShield: 40,
+fuel: 14, maxFuel: 20,
+credits: 180, missiles: 4,
+laserPower: 12, evasion: 15,
+cargoMax: 40,
+cargo: { fuel: 0, metal: 0, electronics: 0, meds: 0 },
+stats: { sectorsCleared: 0, systemsVisited: 0, totalCreditsEarned: 180, enemiesKilled: 0 },
+currentLocationIndex: 0,
+nodes: [], mode: 'navigation', currentEvent: null, currentEnemy: null
+};
+const ITEM_NAMES = { fuel: "Топливо", metal: "Металл", electronics: "Электроника", meds: "Медикаменты" };
+const BASE_PRICES = { fuel: 15, metal: 20, electronics: 45, meds: 30 };
+const NODE_TYPES = {
+PLANET: { name: "Планета", icon: "🪐" },
+STATION: { name: "Станция", icon: "🛰️" },
+ANOMALY: { name: "Аномалия", icon: "🌀" },
+ASTEROIDS: { name: "Астероиды", icon: "☄️" },
+PIRATE: { name: "Засада", icon: "🏴‍☠️" },
+BOSS: { name: "Врата сектора", icon: "🔮" }
+};
+const prefixes = ["Alpha", "Vortex", "Krypton", "Gorgon", "Zenith", "Helios", "Tarkis", "Xenon", "Omicron", "Hyperion"];
+const suffixes = ["Prime", "Major", "IX", "Beta", "Theta", "7", "Zeta", "Nox", "Cygni", "G-104"];
+function generateSystemName() {
+return prefixes[Math.floor(Math.random() * prefixes.length)] + " " + suffixes[Math.floor(Math.random() * suffixes.length)];
+}
+function generateEnemyName() {
+const types = ["Истребитель Синдиката", "Автономный Дрон", "Охотник за головами", "Пиратский Налетчик", "Корсар Наемников", "Дрон Защиты Предтеч"];
+return types[Math.floor(Math.random() * types.length)] + " #" + Math.floor(100 + Math.random() * 900);
+}
+const logContainer = document.getElementById('log-container');
+window.onload = function() {
+if (localStorage.getItem('orion_horizon_save')) {
+try {
+gameState = JSON.parse(localStorage.getItem('orion_horizon_save'));
+logMessage("Система автоматического восстановления. Данные полета загружены.", "system");
+} catch(e) {
+initNewGame();
+}
+} else {
+initNewGame();
+}
+renderUI();
+};
+function saveGame() { localStorage.setItem('orion_horizon_save', JSON.stringify(gameState)); }
+function resetGame() { localStorage.removeItem('orion_horizon_save'); initNewGame(); renderUI(); }
+function restartGame() { document.getElementById('end-modal').classList.remove('active'); initNewGame(); renderUI(); }
+function initNewGame() {
+gameState.sector = 1; gameState.hp = 100; gameState.maxHp = 100;
+gameState.shield = 40; gameState.maxShield = 40; gameState.fuel = 14; gameState.maxFuel = 20;
+gameState.credits = 180; gameState.missiles = 4; gameState.laserPower = 12; gameState.evasion = 15;
+gameState.cargoMax = 40; gameState.cargo = { fuel: 0, metal: 0, electronics: 0, meds: 0 };
+gameState.stats = { sectorsCleared: 0, systemsVisited: 0, totalCreditsEarned: 180, enemiesKilled: 0 };
+gameState.mode = 'navigation'; gameState.currentEvent = null; gameState.currentEnemy = null;
+if(logContainer) logContainer.innerHTML = '';
+logMessage("Бортовой компьютер активирован. Вектор движения задан.", "system");
+logMessage("Добро пожаловать на капитанский мостик!", "story");
+generateSectorMap();
+}
+function generateSectorMap() {
+let nodesLayers = [];
+let idCounter = 0;
+const rowsCount = 4;
+const types = [NODE_TYPES.PLANET, NODE_TYPES.STATION, NODE_TYPES.ANOMALY, NODE_TYPES.ASTEROIDS, NODE_TYPES.PIRATE];
+// Создаем слои карты
+for (let r = 0; r < rowsCount; r++) {
+const nodesInRow = 2 + Math.floor(Math.random() * 2);
+const rowNodes = [];
+for (let n = 0; n < nodesInRow; n++) {
+let type = types[Math.floor(Math.random() * types.length)];
+if (r === 0 && n === 0) type = NODE_TYPES.STATION;
+rowNodes.push({
+id: idCounter++, row: r, name: generateSystemName(),
+type: type, visited: false, marketPrices: generateMarketPrices(type), connections: []
+});
+}
+nodesLayers.push(rowNodes);
+}
+// Финальный босс сектора
+const bossNode = {
+id: idCounter++, row: rowsCount,
+name: gameState.sector === gameState.maxSectors ? "Ядро Галактики (ФИНАЛ)" : Врата в Сектор ${gameState.sector + 1},
+type: NODE_TYPES.BOSS, visited: false, marketPrices: generateMarketPrices(NODE_TYPES.BOSS), connections: []
+};
+nodesLayers.push([bossNode]);
+// Связываем каждый узел текущего ряда со ВСЕМИ узлами следующего ряда
+for (let r = 0; r < nodesLayers.length - 1; r++) {
+for (let n = 0; n < nodesLayers[r].length; n++) {
+const nextRow = nodesLayers[r+1];
+nextRow.forEach(nextNode => {
+nodesLayers[r][n].connections.push(nextNode.id);
+});
+}
+}
+gameState.nodes = nodesLayers.flat();
+// Игрок стартует в первом узле первого ряда
+gameState.currentLocationIndex = gameState.nodes[0].id;
+gameState.nodes[0].visited = true;
+gameState.mode = 'navigation';
+saveGame();
+}
+function generateMarketPrices(type) {
+const modifiers = { fuel: 1, metal: 1, electronics: 1, meds: 1 };
+if (type === NODE_TYPES.PLANET) { modifiers.metal = 0.6; modifiers.electronics = 1.3; }
+if (type === NODE_TYPES.STATION) { modifiers.electronics = 0.7; modifiers.fuel = 0.8; modifiers.metal = 1.2; }
+if (type === NODE_TYPES.ASTEROIDS) { modifiers.metal = 0.4; modifiers.meds = 1.4; }
+const prices = {};
+for (let key in BASE_PRICES) {
+const randomFluctuation = 0.85 + Math.random() * 0.3;
+prices[key] = Math.round(BASE_PRICES[key] * (modifiers[key] || 1) * randomFluctuation);
+}
+return prices;
+}
+function logMessage(text, type = "story") {
+if (!logContainer) return;
+const msg = document.createElement('div');
+msg.className = log-msg msg-${type};
+msg.innerText = [лог] ${text};
+logContainer.appendChild(msg);
+logContainer.scrollTop = logContainer.scrollHeight;
+}
+function getCargoMass() { return Object.values(gameState.cargo).reduce((a, b) => a + b, 0); }
+function renderUI() {
+document.getElementById('lbl-hp').innerText = ${gameState.hp}/${gameState.maxHp};
+document.getElementById('bar-hp').style.width = ${(gameState.hp / gameState.maxHp) * 100}%;
+document.getElementById('lbl-shield').innerText = ${gameState.shield}/${gameState.maxShield};
+document.getElementById('bar-shield').style.width = ${(gameState.shield / gameState.maxShield) * 100}%;
+document.getElementById('lbl-fuel').innerText = ${gameState.fuel}/${gameState.maxFuel};
+document.getElementById('bar-fuel').style.width = ${(ga
